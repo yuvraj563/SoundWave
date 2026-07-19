@@ -5,10 +5,19 @@ import axios from 'axios'
  *
  * The backend handles JioSaavn's internal API, DES decryption, and CORS.
  * Covers Hindi, Bhojpuri, Punjabi, Tamil, Telugu, English — everything on JioSaavn.
+ *
+ * PRODUCTION NOTE:
+ * In development, Vite's proxy rewrites `/api/saavn/*` → `http://localhost:5000/api/saavn/*`.
+ * In production (Vercel static build), no proxy exists, so we MUST use an absolute URL.
+ * Set VITE_API_URL=https://your-render-backend.onrender.com in Vercel's env vars.
  */
 
+// In production: VITE_API_URL = 'https://your-render-backend.onrender.com'
+// In dev: VITE_API_URL is empty/undefined → falls back to '' so Vite proxy handles it
+const BACKEND_BASE = import.meta.env.VITE_API_URL || ''
+
 const api = axios.create({
-  baseURL: '/api/saavn',   // Vite proxy → Express backend on port 5000
+  baseURL: `${BACKEND_BASE}/api/saavn`,
   timeout: 15000,
 })
 

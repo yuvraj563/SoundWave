@@ -39,21 +39,33 @@ const limiter = rateLimit({
 app.use('/api/', limiter)
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
+// Support comma-separated list in FRONTEND_URL for multiple Vercel deployments
+const extraOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map(u => u.trim())
+  .filter(Boolean)
+
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
-  process.env.FRONTEND_URL,
+  ...extraOrigins,
 ].filter(Boolean)
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g., mobile apps, Postman)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true)
-    } else {
-      callback(new Error(`CORS blocked: ${origin}`))
-    }
+    // Allow requests with no origin (e.g., mobile apps, Postman, server-side)
+    if (!origin) return callback(null, true)
+
+    // Allow any Vercel deployment subdomain automatically
+    if (origin.endsWith('.vercel.app')) return callback(null, true)
+
+    // Allow explicit whitelist
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+
+    // Block and log so it's visible in Render logs
+    console.warn(`[CORS] Blocked origin: ${origin}. Add it to FRONTEND_URL env var.`)
+    callback(new Error(`CORS blocked: ${origin}`))
   },
   credentials: true,
 }))
